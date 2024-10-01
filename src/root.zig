@@ -40,6 +40,30 @@ pub inline fn todo(comptime T: type, _: anytype) T {
     @panic("not yet implemented");
 }
 
+pub fn FilteredLogger(comptime scopes: []const u8) fn(
+    comptime level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    return struct {
+        pub fn filteredLogFn(
+            comptime level: std.log.Level,
+            comptime scope: @Type(.enum_literal),
+            comptime format: []const u8,
+            args: anytype,
+        ) void {
+            comptime var iter = std.mem.tokenizeScalar(u8, scopes, ',');
+
+            inline while (comptime iter.next()) |scopeStr| {
+                if (comptime std.mem.eql(u8, @tagName(scope), scopeStr)) {
+                    return std.log.defaultLog(level, scope, format, args);
+                }
+            }
+        }
+    }.filteredLogFn;
+}
+
 pub fn BufferIterator(comptime T: type) type {
     return struct {
         buffer: []const T,
